@@ -3,6 +3,12 @@ if vim.g.loaded_tour then
 end
 vim.g.loaded_tour = true
 
+-- Put bin/ on PATH so Claude, started in a Neovim terminal, can run `nvim-tour`.
+local bin = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h") .. "/bin"
+if not vim.tbl_contains(vim.split(vim.env.PATH or "", ":", { plain = true }), bin) then
+  vim.env.PATH = bin .. ":" .. (vim.env.PATH or "")
+end
+
 local function highlights()
   vim.api.nvim_set_hl(0, "TourStop", { link = "CursorLine", default = true })
   vim.api.nvim_set_hl(0, "TourBar", { link = "DiagnosticInfo", default = true })

@@ -7,14 +7,14 @@ argument-hint: "[path to plan file]"
 
 # Plan Walkthrough
 
-Take the developer through the Plan in their Neovim, one **Stop** at a time, so that afterwards they could make the next change in this area themselves. You drive the editor live; the **Narration** lives here in the chat. Terms: `~/workspace/tour.nvim/GLOSSARY.md`.
+Take the developer through the Plan in their Neovim, one **Stop** at a time, so that afterwards they could make the next change in this area themselves. You drive the editor live; the **Narration** lives here in the chat. Terms are defined in tour.nvim's `GLOSSARY.md`.
 
 ## Driving Neovim
 
 Every editor action is one call, payload as JSON on stdin:
 
 ```bash
-/home/work/workspace/tour.nvim/bin/tour <command> <<'JSON'
+nvim-tour <command> <<'JSON'
 { ... }
 JSON
 ```
@@ -36,7 +36,7 @@ Output is one JSON line. On `"ok":false` the `error` names the candidates: fix t
 
 ## Steps
 
-1. **Connect.** Run `status`. On failure, relay the error and stop. Its `cwd` is Neovim's working directory.
+1. **Connect.** Run `status`; its `cwd` is Neovim's working directory. When `nvim-tour` is not found, Claude is not running inside a Neovim that has tour.nvim loaded: say so and stop. On any other failure, relay the error and stop.
 2. **Read the Plan.** The argument if given, otherwise this session's plan file. Read every file the Plan touches, so each Narration rests on the code as it is today.
 3. **Build the Itinerary** in the Plan's step order. One Stop per place the Plan changes. Each Anchor is existing code; for code the Plan adds, anchor on the existing code it plugs into (the caller, the module that declares it, the trait it implements). Done when every Plan step has at least one Stop.
 4. **Load it.** Call `itinerary`; repeat until `ok`. Then list the Stops in chat (number, step, label, `file:line`) and wait for the developer to reorder, drop or add. Reload after changes.

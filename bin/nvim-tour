@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives a Tour in a running Neovim. Usage:
-#   tour itinerary|show|finish|status  <<'JSON'
+#   nvim-tour itinerary|show|finish|status  <<'JSON'
 #   { ...payload... }
 #   JSON
 # Prints one JSON line; exits non-zero when it contains "ok":false.
@@ -13,7 +13,7 @@ cmd="${1:-}"
 case "$cmd" in
   itinerary | show | finish | status) ;;
   *)
-    echo '{"ok":false,"error":"usage: tour itinerary|show|finish|status < payload.json"}'
+    echo '{"ok":false,"error":"usage: nvim-tour itinerary|show|finish|status < payload.json"}'
     exit 2
     ;;
 esac

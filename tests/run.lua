@@ -50,6 +50,12 @@ end
 local rs = fx .. "sample.rs"
 local lua = fx .. "sample.lua"
 
+test("plugin puts bin/ on PATH", function()
+  local bin = root .. "/bin"
+  assert(vim.tbl_contains(vim.split(vim.env.PATH, ":", { plain = true }), bin), "bin not on PATH")
+  eq(1, vim.fn.executable("nvim-tour"), "nvim-tour executable")
+end)
+
 -- Anchor resolution ---------------------------------------------------------
 
 test("struct preferred over its impls", function()
