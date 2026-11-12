@@ -33,10 +33,11 @@ and in `~/.claude/settings.json`:
 | `:TourStop` | `<leader>aj` | jump to the current Stop |
 | `:TourEnd` | `<leader>aq` | clear highlights, close the Sketch |
 
-For `next` without leaving the code, map a key to claudecode.nvim's sender:
+For `next` and `back` without leaving the code, map keys to claudecode.nvim's sender:
 
 ```lua
 { "<leader>an", function() require("claudecode.terminal").send_to_terminal("next") end, desc = "Tour: next Stop" },
+{ "<leader>ap", function() require("claudecode.terminal").send_to_terminal("back") end, desc = "Tour: previous Stop" },
 ```
 
 Highlight groups: `TourStop` (range), `TourBar` (sign), `TourLabel` (Label and Sketch title).
