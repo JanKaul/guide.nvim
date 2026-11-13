@@ -1,6 +1,6 @@
 # tour.nvim
 
-Guided walkthroughs of code inside Neovim, narrated by an agent, so the developer understands a change well enough to make the next change in that area themselves.
+Guided walkthroughs of code inside Neovim, narrated by an agent, so the developer understands code or a change well enough to make the next change in that area themselves.
 
 ## Language
 
@@ -13,7 +13,7 @@ An agent's proposed set of changes that has not been implemented yet.
 _Avoid_: spec, proposal
 
 **Tour**:
-An ordered visit through code, made of Stops, that the agent narrates one Stop at a time.
+An ordered visit through code, made of Stops, that the agent narrates one Stop at a time; the developer asks for one by describing what to show. A Tour may have a single Stop.
 _Avoid_: walkthrough (as a noun for the object), guide, session
 
 **Itinerary**:
@@ -39,6 +39,10 @@ _Avoid_: description, note
 **Sketch**:
 Proposed code for something a Plan would add, shown beside the Anchor, illustrating intent rather than final implementation.
 _Avoid_: preview, draft, stub
+
+**Base**:
+The git revision a Stop's file is compared against, shown side by side with the file as it is now.
+_Avoid_: diff target, revision, ref
 
 **Amendment**:
 A change to the Plan that the developer asks for during a Plan Walkthrough, collected and applied to the Plan after the Tour ends.

@@ -8,6 +8,14 @@ vim.opt.rtp:append(vim.fn.stdpath("data") .. "/site")
 vim.cmd("filetype on")
 vim.cmd("runtime plugin/tour.lua")
 
+-- gitsigns for the Base diff tests, from lazy.nvim's install dir if present.
+local gitsigns_dir = vim.fn.stdpath("data") .. "/lazy/gitsigns.nvim"
+local have_gitsigns = vim.fn.isdirectory(gitsigns_dir) == 1
+if have_gitsigns then
+  vim.opt.rtp:append(gitsigns_dir)
+  require("gitsigns").setup({})
+end
+
 local fx = root .. "/tests/fixtures/"
 local failures, passed = 0, 0
 
@@ -247,6 +255,111 @@ test(":TourStop returns from another file, <C-o> goes back", function()
   eq(14, vim.api.nvim_win_get_cursor(0)[1], "after detour line")
   vim.api.nvim_set_current_win(claude_win)
   rpc("finish")
+end)
+
+-- Base diffs --------------------------------------------------------------------
+
+local function git(dir, ...)
+  local res = vim.system({ "git", "-C", dir, ... }, { text = true }):wait()
+  assert(res.code == 0, table.concat({ ... }, " ") .. ": " .. (res.stderr or ""))
+end
+
+local repo = vim.fn.tempname()
+vim.fn.mkdir(repo, "p")
+local repo_file = repo .. "/lib.rs"
+git(repo, "init", "-q")
+git(repo, "config", "user.email", "test@example.com")
+git(repo, "config", "user.name", "test")
+vim.fn.writefile({ "pub fn retry() -> u32 {", "    1", "}" }, repo_file)
+git(repo, "add", ".")
+git(repo, "commit", "-q", "-m", "one")
+vim.fn.writefile({ "pub fn retry() -> u32 {", "    3", "}" }, repo_file)
+git(repo, "commit", "-q", "-am", "two")
+
+local function gitsigns_wins()
+  local n = 0
+  for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(w)):match("^gitsigns://") then
+      n = n + 1
+    end
+  end
+  return n
+end
+
+local BASE_STOPS = {
+  { file = repo_file, symbol = "retry", label = "with base", base = "HEAD~1" },
+  { file = repo_file, symbol = "retry", label = "without base" },
+}
+
+test("itinerary reports an unknown Base", function()
+  local res = rpc("itinerary", { stops = { { file = repo_file, symbol = "retry", label = "x", base = "nope" } } })
+  eq(false, res.ok, "ok")
+  has(res.errors[1].error, "base 'nope' is not a commit")
+end)
+
+test("a Stop with a Base cannot also have a Sketch", function()
+  eq(true, rpc("itinerary", { stops = BASE_STOPS }).ok, "itinerary")
+  has(rpc("show", { stop = 1, sketch = "x" }).error, "either a Sketch or a Base")
+  rpc("finish")
+end)
+
+if have_gitsigns then
+  test("Base opens a gitsigns diff and keeps focus", function()
+    vim.api.nvim_set_current_win(claude_win)
+    eq(true, rpc("itinerary", { stops = BASE_STOPS }).ok, "itinerary")
+    local res = rpc("show", { stop = 1 })
+    eq(true, res.ok, "show: " .. tostring(res.error))
+    eq(1, gitsigns_wins(), "diff window")
+    eq(claude_win, vim.api.nvim_get_current_win(), "focus")
+    local diffs = 0
+    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.wo[w].diff then
+        diffs = diffs + 1
+      end
+    end
+    eq(2, diffs, "both sides in diff mode")
+  end)
+
+  test("next Stop without Base closes the diff", function()
+    eq(true, rpc("show", { stop = 2 }).ok, "show")
+    eq(0, gitsigns_wins(), "diff closed")
+    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      eq(false, vim.wo[w].diff, "diff off in window " .. w)
+    end
+  end)
+
+  test("finish closes the diff", function()
+    eq(true, rpc("show", { stop = 1 }).ok, "show")
+    eq(1, gitsigns_wins(), "diff open")
+    rpc("finish")
+    eq(0, gitsigns_wins(), "diff closed")
+  end)
+
+  test("Detour with a Base", function()
+    rpc("itinerary", { stops = BASE_STOPS })
+    rpc("show", { stop = 2 })
+    local res = rpc("show", { detour = { file = repo_file, symbol = "retry", label = "d", base = "HEAD~1" } })
+    eq(true, res.ok, "detour: " .. tostring(res.error))
+    eq(1, gitsigns_wins(), "diff open")
+    eq(2, rpc("status").current, "position unchanged")
+    rpc("finish")
+  end)
+else
+  io.stdout:write("SKIP gitsigns diff tests: " .. gitsigns_dir .. " not found\n")
+end
+
+test("without gitsigns a Base is an error", function()
+  local saved = package.loaded.gitsigns
+  local saved_preload = package.preload.gitsigns
+  package.loaded.gitsigns = nil
+  package.preload.gitsigns = function()
+    error("not installed")
+  end
+  local res = rpc("itinerary", { stops = BASE_STOPS })
+  package.preload.gitsigns = saved_preload
+  package.loaded.gitsigns = saved
+  eq(false, res.ok, "ok")
+  has(res.errors[1].error, "requires gitsigns.nvim")
 end)
 
 test("code window falls back when the remembered one is gone", function()

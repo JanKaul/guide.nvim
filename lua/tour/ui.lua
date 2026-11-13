@@ -129,6 +129,111 @@ function M.close_sketch(sketch_win)
   end
 end
 
+local GITSIGNS_MISSING = "a Base requires gitsigns.nvim (LazyVim core; disabled by the mini-diff extra)"
+
+--- Whether gitsigns is available; returns an error string otherwise.
+function M.diff_available()
+  if not pcall(require, "gitsigns") then
+    return GITSIGNS_MISSING
+  end
+end
+
+--- Runs an async gitsigns action and waits for its callback.
+local function gitsigns_sync(fn, timeout)
+  local done, err = false, nil
+  fn(function(e)
+    done, err = true, e
+  end)
+  if not vim.wait(timeout or 3000, function()
+    return done
+  end, 10) then
+    return "gitsigns timed out"
+  end
+  return err
+end
+
+local function diff_wins(tab)
+  local wins = {}
+  for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+    if vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win)):match("^gitsigns://") then
+      table.insert(wins, win)
+    end
+  end
+  return wins
+end
+
+--- Shows the code window's file side by side with `base`, using gitsigns.
+--- Keeps the developer in the window (and mode) they were in.
+--- @return string|nil error
+function M.diff(code_win, buf, base)
+  local ok, gs = pcall(require, "gitsigns")
+  if not ok then
+    return GITSIGNS_MISSING
+  end
+  local cache = require("gitsigns.cache").cache
+  if not cache[buf] then
+    -- Loading the file may already have started an attach; a second call
+    -- returns at once while that runs, so wait for the cache, not the callback.
+    gs.attach({ bufnr = buf })
+    if not vim.wait(3000, function()
+      return cache[buf] ~= nil
+    end, 10) then
+      return ("gitsigns could not attach to %s; is it tracked by git?"):format(vim.api.nvim_buf_get_name(buf))
+    end
+  end
+
+  local tab = vim.api.nvim_win_get_tabpage(code_win)
+  local prev_win = vim.api.nvim_get_current_win()
+  local was_terminal = vim.api.nvim_get_mode().mode:sub(1, 1) == "t"
+  vim.api.nvim_set_current_win(code_win)
+  local err = gitsigns_sync(function(cb)
+    gs.diffthis(base, { vertical = true }, cb)
+  end)
+  if vim.api.nvim_win_is_valid(prev_win) then
+    vim.api.nvim_set_current_win(prev_win)
+    if was_terminal then
+      vim.cmd("startinsert")
+    end
+  end
+
+  if err then
+    return ("gitsigns diff against '%s' failed: %s"):format(base, err)
+  end
+  if #diff_wins(tab) == 0 then
+    return ("gitsigns opened no diff against '%s'"):format(base)
+  end
+end
+
+--- Closes the gitsigns diff (if any) in the code window's tab.
+function M.close_diff(code_win)
+  if not (code_win and vim.api.nvim_win_is_valid(code_win)) then
+    return
+  end
+  local wins = diff_wins(vim.api.nvim_win_get_tabpage(code_win))
+  for _, win in ipairs(wins) do
+    pcall(vim.api.nvim_win_close, win, true)
+  end
+  if #wins > 0 or vim.wo[code_win].diff then
+    vim.api.nvim_win_call(code_win, function()
+      vim.cmd("diffoff")
+    end)
+  end
+end
+
+--- Checks that `base` names a commit in the repo containing `path`.
+--- @return string|nil error
+function M.check_base(path, base)
+  if type(base) ~= "string" or base == "" then
+    return "base must be a non-empty string"
+  end
+  local res = vim
+    .system({ "git", "-C", vim.fn.fnamemodify(path, ":h"), "rev-parse", "--verify", "--quiet", base .. "^{commit}" })
+    :wait()
+  if res.code ~= 0 then
+    return ("base '%s' is not a commit in the repository of %s"):format(base, path)
+  end
+end
+
 function M.quickfix(items)
   vim.fn.setqflist({}, " ", { title = "Tour", items = items })
 end

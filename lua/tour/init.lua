@@ -20,18 +20,36 @@ local function stop_label(i, total, stop)
   return ("Stop %d/%d · %s%s"):format(i, total, step, stop.label or "")
 end
 
-local function render(r, label, args)
+local function has_sketch(args)
+  return type(args.sketch) == "string" and args.sketch ~= ""
+end
+
+--- Problems with a Stop's Base, checked before anything is shown.
+local function base_error(stop, path)
+  if stop.base == nil then
+    return nil
+  end
+  return ui.diff_available() or ui.check_base(path, stop.base)
+end
+
+--- @return string|nil error
+local function render(r, label, stop, args)
   ui.clear(state.bufs)
+  ui.close_diff(state.code_win)
   state.code_win = ui.code_win(state.code_win, state.sketch_win)
   ui.show(state.code_win, r, label)
   state.bufs[r.buf] = true
 
-  if type(args.sketch) == "string" and args.sketch ~= "" then
+  if has_sketch(args) then
     local ft = args.sketch_ft or vim.bo[r.buf].filetype
     state.sketch_win = ui.sketch(state.code_win, state.sketch_win, args.sketch, ft, label)
   else
     ui.close_sketch(state.sketch_win)
     state.sketch_win = nil
+  end
+
+  if stop.base then
+    return ui.diff(state.code_win, r.buf, stop.base)
   end
 end
 
@@ -48,6 +66,9 @@ function M.itinerary(args)
   for i, stop in ipairs(stops) do
     local r, err = anchor.resolve(stop)
     if r then
+      err = base_error(stop, r.path)
+    end
+    if r and not err then
       resolved[i] = { stop = i, file = r.path, line = r.start_row + 1, end_line = r.end_row + 1 }
       table.insert(items, {
         filename = r.path,
@@ -71,7 +92,8 @@ end
 
 --- Shows Stop `args.stop` of the Itinerary, or a Detour when `args.detour`
 --- (an Anchor with a label) is given. A Detour leaves the position unchanged.
---- Optional `args.sketch` (+ `sketch_ft`) fills the Sketch split.
+--- Optional `args.sketch` (+ `sketch_ft`) fills the Sketch split; a Stop with
+--- a `base` (git revision) instead opens a gitsigns diff against it.
 function M.show(args)
   local stop, label, idx
   if args.detour then
@@ -89,11 +111,20 @@ function M.show(args)
     label = stop_label(idx, #state.stops, stop)
   end
 
+  if stop.base and has_sketch(args) then
+    return { ok = false, error = "a Stop shows either a Sketch or a Base diff, not both" }
+  end
   local r, err = anchor.resolve(stop)
-  if not r then
+  if r then
+    err = base_error(stop, r.path)
+  end
+  if not r or err then
     return { ok = false, error = err }
   end
-  render(r, label, args)
+  err = render(r, label, stop, args)
+  if err then
+    return { ok = false, error = err }
+  end
   if idx then
     state.current = idx
   end
@@ -112,6 +143,7 @@ end
 --- Itinerary is kept so Stops can be revisited.
 function M.finish()
   ui.clear(state.bufs)
+  ui.close_diff(state.code_win)
   ui.close_sketch(state.sketch_win)
   state.stops, state.current, state.code_win, state.sketch_win, state.bufs = nil, nil, nil, nil, {}
   return { ok = true }
