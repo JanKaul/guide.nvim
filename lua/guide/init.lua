@@ -13,7 +13,38 @@ local state = {
   code_win = nil,
   sketch_win = nil,
   bufs = {}, -- buffers carrying Tour extmarks
+  agent_buf = nil, -- terminal buffer of the agent driving the Tour; kept across Tours
 }
+
+local function term_chan(buf)
+  if not (buf and vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buftype == "terminal") then
+    return nil
+  end
+  local chan = vim.bo[buf].channel
+  return chan ~= 0 and chan or nil
+end
+
+--- The terminal buffer whose job is `pid` or one of its ancestors.
+local function terminal_of(pid)
+  local jobs = {}
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    local chan = term_chan(buf)
+    local ok, jpid = pcall(vim.fn.jobpid, chan or -1)
+    if chan and ok and jpid > 0 then
+      jobs[jpid] = buf
+    end
+  end
+  for _ = 1, 64 do
+    if not pid or pid <= 1 then
+      return nil
+    end
+    if jobs[pid] then
+      return jobs[pid]
+    end
+    local ok, info = pcall(vim.api.nvim_get_proc, pid)
+    pid = ok and info and info.ppid or nil
+  end
+end
 
 local function stop_label(i, total, stop)
   local step = stop.step and ("[%s] "):format(stop.step) or ""
@@ -182,12 +213,38 @@ function M.goto_current()
   vim.api.nvim_win_set_cursor(state.code_win, { r.start_row + 1, 0 })
 end
 
+--- Types `text` into the agent's terminal and submits it, as if the developer
+--- had typed it there. The agent's terminal is the one the last `nvim-guide`
+--- call came from.
+--- @return boolean sent
+function M.send(text)
+  local chan = term_chan(state.agent_buf)
+  if not chan then
+    vim.notify("guide: no agent terminal known yet; start a Tour from an agent running in Neovim", vim.log.levels.WARN)
+    return false
+  end
+  -- The trailing CR is the only Enter: interior line breaks become LF, and
+  -- multi-line text goes in as one bracketed paste.
+  local payload = text:gsub("\r\n", "\n"):gsub("\r", "\n")
+  if payload:find("\n", 1, true) then
+    payload = "\27[200~" .. payload .. "\27[201~"
+  end
+  local ok, written = pcall(vim.fn.chansend, chan, payload .. "\r")
+  if not ok or written == 0 then
+    vim.notify("guide: the agent terminal has exited", vim.log.levels.WARN)
+    return false
+  end
+  return true
+end
+
 local COMMANDS = { itinerary = M.itinerary, show = M.show, finish = M.finish, status = M.status }
 
---- Entry point for `bin/nvim-guide`: `{cmd, payload_file}` in, one JSON string out.
+--- Entry point for `bin/nvim-guide`: `{cmd, payload_file, caller_pid}` in, one
+--- JSON string out. The caller's pid identifies the agent's terminal for `send`.
 function M.rpc(argv)
   local ok, result = pcall(function()
     local cmd, file = argv[1], argv[2]
+    state.agent_buf = terminal_of(tonumber(argv[3])) or state.agent_buf
     local fn = COMMANDS[cmd]
     if not fn then
       return { ok = false, error = ("unknown command '%s'"):format(tostring(cmd)) }

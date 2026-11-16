@@ -6,15 +6,14 @@ Tested with Neovim 0.12. Needs Treesitter parsers for the languages you tour, an
 
 ## Install
 
-lazy.nvim, with suggested keys (the `next` / `back` keys use [claudecode.nvim](https://github.com/coder/claudecode.nvim) to type into Claude's prompt):
+lazy.nvim, with suggested keys:
 
 ```lua
 {
   "JanKaul/guide.nvim",
   lazy = false, -- Claude calls require("guide") over RPC at any time
   keys = {
-    { "<leader>an", function() require("claudecode.terminal").send_to_terminal("next") end, desc = "Guide: next Stop" },
-    { "<leader>ap", function() require("claudecode.terminal").send_to_terminal("back") end, desc = "Guide: previous Stop" },
+    { "<leader>an", "<cmd>GuideNext<cr>", desc = "Guide: next Stop" },
     { "<leader>aj", "<cmd>GuideStop<cr>", desc = "Guide: jump to current Stop" },
     { "<leader>aq", "<cmd>GuideEnd<cr>", desc = "Guide: end" },
   },
@@ -45,8 +44,12 @@ The plugin puts its `bin/` on Neovim's `PATH`, so Claude finds `nvim-guide` when
 
 | Command | |
 | --- | --- |
+| `:GuideNext` / `:GuideBack` | type `next` / `back` into the agent's prompt |
+| `:GuideSend {text}` | type any text into the agent's prompt and submit it (`require("guide").send(text)` from Lua) |
 | `:GuideStop` | jump to the current Stop, e.g. after exploring elsewhere (`<C-o>` goes back) |
 | `:GuideEnd` | clear highlights, close the Sketch and the diff |
+
+The agent's terminal is found by itself: each `nvim-guide` call passes its process ID, and the plugin picks the Neovim terminal whose job started it. So the keys work with any agent running in a Neovim terminal, once it has called `nvim-guide`.
 
 Highlight groups: `GuideStop` (range), `GuideBar` (sign), `GuideLabel` (Label and Sketch title).
 

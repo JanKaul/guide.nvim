@@ -43,7 +43,7 @@ if [[ ! -t 0 ]]; then
 fi
 
 out="$(nvim --server "$sock" --remote-expr \
-  "luaeval('require(\"guide\").rpc(_A)', ['$cmd', '$payload_file'])" 2>&1)" || {
+  "luaeval('require(\"guide\").rpc(_A)', ['$cmd', '$payload_file', $$])" 2>&1)" || {
   printf '{"ok":false,"error":"cannot reach Neovim at %s: %s"}\n' "$sock" "${out//\"/\'}"
   exit 1
 }

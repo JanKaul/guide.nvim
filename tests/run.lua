@@ -371,5 +371,39 @@ test("code window falls back when the remembered one is gone", function()
   rpc("finish")
 end)
 
+-- send ------------------------------------------------------------------------
+
+local function term(cmd)
+  local buf = vim.api.nvim_create_buf(true, false)
+  vim.api.nvim_buf_call(buf, function()
+    vim.fn.jobstart(cmd, { term = true })
+  end)
+  return buf
+end
+
+local function term_has(buf, text)
+  return vim.wait(3000, function()
+    return table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n"):find(text, 1, true) ~= nil
+  end, 20)
+end
+
+test("send without a known agent terminal does nothing", function()
+  local notify = vim.notify
+  vim.notify = function() end
+  local sent = guide.send("next")
+  vim.notify = notify
+  eq(false, sent, "sent")
+end)
+
+test("send types into the terminal nvim-guide was called from", function()
+  local other = term({ "cat" })
+  local agent = term({ "sh", "-c", "nvim-guide status >/dev/null; echo READY; cat" })
+  assert(term_has(agent, "READY"), "agent never called nvim-guide")
+  eq(true, guide.send("next"), "sent")
+  assert(term_has(agent, "next"), "agent terminal did not get the text")
+  eq(false, term_has(other, "next"), "other terminal got the text")
+  vim.cmd("silent bwipeout! " .. agent .. " " .. other)
+end)
+
 io.stdout:write(("%d passed, %d failed\n"):format(passed, failures))
 vim.cmd(failures == 0 and "qa!" or "cq!")
