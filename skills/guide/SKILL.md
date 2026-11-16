@@ -1,13 +1,13 @@
 ---
-name: tour
+name: guide
 description: Show code in the developer's Neovim, Stop by Stop, from a description of what to show.
 disable-model-invocation: true
 argument-hint: "<what to show>"
 ---
 
-# Tour
+# Guide
 
-Show the developer what their description asks for, in their Neovim, one **Stop** at a time, so that afterwards they could make the next change in this area themselves. You drive the editor live; the **Narration** lives here in the chat. Terms are defined in tour.nvim's `GLOSSARY.md`.
+Give the developer a **Tour** of what their description asks for, in their Neovim, one **Stop** at a time, so that afterwards they could make the next change in this area themselves. You drive the editor live; the **Narration** lives here in the chat. Terms are defined in guide.nvim's `GLOSSARY.md`.
 
 When the description refers to a Plan ("the plan", a plan file, "what you are about to change"), this is a **Plan Walkthrough**: read [plan.md](plan.md) now and follow it where it overrides steps 3, 5 and 7.
 
@@ -16,7 +16,7 @@ When the description refers to a Plan ("the plan", a plan file, "what you are ab
 Every editor action is one call, payload as JSON on stdin:
 
 ```bash
-nvim-tour <command> <<'JSON'
+nvim-guide <command> <<'JSON'
 { ... }
 JSON
 ```
@@ -39,7 +39,7 @@ Output is one JSON line. On `"ok":false` the `error` names the candidates: fix t
 
 ## Steps
 
-1. **Connect.** Run `status`; its `cwd` is Neovim's working directory. When `nvim-tour` is not found, Claude is not running inside a Neovim that has tour.nvim loaded: say so and stop. On any other failure, relay the error and stop.
+1. **Connect.** Run `status`; its `cwd` is Neovim's working directory. When `nvim-guide` is not found, Claude is not running inside a Neovim that has guide.nvim loaded: say so and stop. On any other failure, relay the error and stop.
 2. **Read the code** the description is about, until you can name every place it needs.
 3. **Build the Itinerary**: one Stop per place, in the order that explains it best. For a flow, that is the order the code runs; for a change, the order a reader needs it. Give a Stop a `base` when it is about what changed (a commit, a branch, your own recent edits). Done when every part of the description has a Stop.
 4. **Load it.** Call `itinerary`; repeat until `ok`.

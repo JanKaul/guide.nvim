@@ -1,6 +1,6 @@
 # The agent drives the Tour live over the Neovim socket
 
-Claude Code shows each Stop by calling `tour.show` over `$NVIM` (`nvim --server "$NVIM" --remote-expr …`) and waits in the chat for "next", a question or a Detour before it shows the next Stop. We chose this over writing a tour file that Neovim plays back on its own. Doing it live lets the Tour adapt to questions mid-way, lets Claude correct an unresolvable Anchor from the error it gets back, and lets Amendments be collected as they come up. These matter more for a Plan Walkthrough than replayability does.
+Claude Code shows each Stop by calling `guide.show` over `$NVIM` (`nvim --server "$NVIM" --remote-expr …`) and waits in the chat for "next", a question or a Detour before it shows the next Stop. We chose this over writing a tour file that Neovim plays back on its own. Doing it live lets the Tour adapt to questions mid-way, lets Claude correct an unresolvable Anchor from the error it gets back, and lets Amendments be collected as they come up. These matter more for a Plan Walkthrough than replayability does.
 
 ## Considered Options
 

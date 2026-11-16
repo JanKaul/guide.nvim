@@ -1,4 +1,4 @@
-# tour.nvim
+# guide.nvim
 
 Guided walkthroughs of code inside Neovim, narrated by an agent, so the developer understands code or a change well enough to make the next change in that area themselves.
 

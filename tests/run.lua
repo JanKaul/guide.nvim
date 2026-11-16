@@ -6,7 +6,7 @@ local root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
 vim.opt.rtp:prepend(root)
 vim.opt.rtp:append(vim.fn.stdpath("data") .. "/site")
 vim.cmd("filetype on")
-vim.cmd("runtime plugin/tour.lua")
+vim.cmd("runtime plugin/guide.lua")
 
 -- gitsigns for the Base diff tests, from lazy.nvim's install dir if present.
 local gitsigns_dir = vim.fn.stdpath("data") .. "/lazy/gitsigns.nvim"
@@ -41,7 +41,7 @@ local function has(haystack, needle)
   end
 end
 
-local anchor = require("tour.anchor")
+local anchor = require("guide.anchor")
 
 local function lines(a)
   local r, err = anchor.resolve(a)
@@ -61,7 +61,7 @@ local lua = fx .. "sample.lua"
 test("plugin puts bin/ on PATH", function()
   local bin = root .. "/bin"
   assert(vim.tbl_contains(vim.split(vim.env.PATH, ":", { plain = true }), bin), "bin not on PATH")
-  eq(1, vim.fn.executable("nvim-tour"), "nvim-tour executable")
+  eq(1, vim.fn.executable("nvim-guide"), "nvim-guide executable")
 end)
 
 -- Anchor resolution ---------------------------------------------------------
@@ -125,13 +125,13 @@ end)
 
 -- Tour API through rpc --------------------------------------------------------
 
-local tour = require("tour")
-local ns = require("tour.ui").ns
+local guide = require("guide")
+local ns = require("guide.ui").ns
 
 local function rpc(cmd, payload)
   local file = vim.fn.tempname()
   vim.fn.writefile(vim.split(vim.json.encode(payload or vim.empty_dict()), "\n"), file)
-  return vim.json.decode(tour.rpc({ cmd, file }))
+  return vim.json.decode(guide.rpc({ cmd, file }))
 end
 
 -- Layout: a code window, and a "Claude" window (non-file buffer) with focus.
@@ -189,7 +189,7 @@ test("show with sketch opens the split, without closes it", function()
   local before = #vim.api.nvim_tabpage_list_wins(0)
   eq(true, rpc("show", { stop = 1, sketch = "pub struct CompactionScheduler {\n    todo: (),\n}" }).ok, "ok")
   eq(before + 1, #vim.api.nvim_tabpage_list_wins(0), "sketch opened")
-  local sb = vim.fn.bufnr("tour://sketch")
+  local sb = vim.fn.bufnr("guide://sketch")
   eq("pub struct CompactionScheduler {", vim.api.nvim_buf_get_lines(sb, 0, 1, false)[1], "sketch text")
   eq("rust", vim.bo[sb].filetype, "sketch ft")
   eq(claude_win, vim.api.nvim_get_current_win(), "focus")
@@ -222,7 +222,7 @@ end)
 test("bad JSON is reported", function()
   local file = vim.fn.tempname()
   vim.fn.writefile({ "{nope" }, file)
-  has(vim.json.decode(tour.rpc({ "show", file })).error, "not valid JSON")
+  has(vim.json.decode(guide.rpc({ "show", file })).error, "not valid JSON")
 end)
 
 test("finish clears everything but quickfix", function()
@@ -234,23 +234,23 @@ test("finish clears everything but quickfix", function()
   eq(3, #vim.fn.getqflist(), "quickfix kept")
 end)
 
-test(":TourStop returns from another file, <C-o> goes back", function()
+test(":GuideStop returns from another file, <C-o> goes back", function()
   rpc("itinerary", { stops = STOPS })
   rpc("show", { stop = 2 })
   -- Wander off in the code window to another file.
   vim.api.nvim_set_current_win(code_win)
   vim.cmd("edit " .. lua)
   vim.api.nvim_win_set_cursor(code_win, { 10, 0 })
-  vim.cmd("TourStop")
+  vim.cmd("GuideStop")
   eq(code_win, vim.api.nvim_get_current_win(), "window")
   eq(rs, vim.api.nvim_buf_get_name(0), "back in the Stop's file")
   eq(14, vim.api.nvim_win_get_cursor(0)[1], "at the Stop")
   vim.cmd([[execute "normal! \<C-o>"]])
   eq(lua, vim.api.nvim_buf_get_name(0), "<C-o> file")
   eq(10, vim.api.nvim_win_get_cursor(0)[1], "<C-o> line")
-  -- A Detour does not move the Stop :TourStop returns to.
+  -- A Detour does not move the Stop :GuideStop returns to.
   rpc("show", { detour = { file = lua, symbol = "helper", label = "d" } })
-  vim.cmd("TourStop")
+  vim.cmd("GuideStop")
   eq(rs, vim.api.nvim_buf_get_name(0), "after detour")
   eq(14, vim.api.nvim_win_get_cursor(0)[1], "after detour line")
   vim.api.nvim_set_current_win(claude_win)

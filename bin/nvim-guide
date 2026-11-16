@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Drives a Tour in a running Neovim. Usage:
-#   nvim-tour itinerary|show|finish|status  <<'JSON'
+#   nvim-guide itinerary|show|finish|status  <<'JSON'
 #   { ...payload... }
 #   JSON
 # Prints one JSON line; exits non-zero when it contains "ok":false.
 #
-# Socket: $TOUR_NVIM, else $NVIM (set inside Neovim terminals), else the only
+# Socket: $GUIDE_NVIM, else $NVIM (set inside Neovim terminals), else the only
 # Neovim socket in $XDG_RUNTIME_DIR.
 set -euo pipefail
 
@@ -13,12 +13,12 @@ cmd="${1:-}"
 case "$cmd" in
   itinerary | show | finish | status) ;;
   *)
-    echo '{"ok":false,"error":"usage: nvim-tour itinerary|show|finish|status < payload.json"}'
+    echo '{"ok":false,"error":"usage: nvim-guide itinerary|show|finish|status < payload.json"}'
     exit 2
     ;;
 esac
 
-sock="${TOUR_NVIM:-${NVIM:-}}"
+sock="${GUIDE_NVIM:-${NVIM:-}}"
 if [[ -z "$sock" ]]; then
   shopt -s nullglob
   socks=()
@@ -28,22 +28,22 @@ if [[ -z "$sock" ]]; then
   if ((${#socks[@]} == 1)); then
     sock="${socks[0]}"
   elif ((${#socks[@]} == 0)); then
-    echo '{"ok":false,"error":"no Neovim found: run Claude inside Neovim, or set TOUR_NVIM to its socket (nvim --listen <path>)"}'
+    echo '{"ok":false,"error":"no Neovim found: run Claude inside Neovim, or set GUIDE_NVIM to its socket (nvim --listen <path>)"}'
     exit 1
   else
-    printf '{"ok":false,"error":"several Neovim instances found; set TOUR_NVIM to one of: %s"}\n' "${socks[*]}"
+    printf '{"ok":false,"error":"several Neovim instances found; set GUIDE_NVIM to one of: %s"}\n' "${socks[*]}"
     exit 1
   fi
 fi
 
-payload_file="$(mktemp "${TMPDIR:-/tmp}/tour.XXXXXX.json")"
+payload_file="$(mktemp "${TMPDIR:-/tmp}/guide.XXXXXX.json")"
 trap 'rm -f "$payload_file"' EXIT
 if [[ ! -t 0 ]]; then
   cat >"$payload_file"
 fi
 
 out="$(nvim --server "$sock" --remote-expr \
-  "luaeval('require(\"tour\").rpc(_A)', ['$cmd', '$payload_file'])" 2>&1)" || {
+  "luaeval('require(\"guide\").rpc(_A)', ['$cmd', '$payload_file'])" 2>&1)" || {
   printf '{"ok":false,"error":"cannot reach Neovim at %s: %s"}\n' "$sock" "${out//\"/\'}"
   exit 1
 }

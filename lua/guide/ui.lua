@@ -4,9 +4,9 @@
 
 local M = {}
 
-M.ns = vim.api.nvim_create_namespace("tour")
+M.ns = vim.api.nvim_create_namespace("guide")
 
-local SKETCH_NAME = "tour://sketch"
+local SKETCH_NAME = "guide://sketch"
 
 local function is_code_win(win, exclude)
   if not win or win == 0 or not vim.api.nvim_win_is_valid(win) or win == exclude then
@@ -58,16 +58,16 @@ function M.show(win, r, label)
 
   for row = r.start_row, r.end_row do
     vim.api.nvim_buf_set_extmark(r.buf, M.ns, row, 0, {
-      line_hl_group = "TourStop",
+      line_hl_group = "GuideStop",
       sign_text = "▎",
-      sign_hl_group = "TourBar",
+      sign_hl_group = "GuideBar",
       priority = 50,
     })
   end
   local first = vim.api.nvim_buf_get_lines(r.buf, r.start_row, r.start_row + 1, false)[1] or ""
   local indent = first:match("^%s*")
   vim.api.nvim_buf_set_extmark(r.buf, M.ns, r.start_row, 0, {
-    virt_lines = { { { indent .. label, "TourLabel" } } },
+    virt_lines = { { { indent .. label, "GuideLabel" } } },
     virt_lines_above = true,
   })
 
@@ -113,7 +113,7 @@ function M.sketch(code_win, sketch_win, text, ft, title)
   else
     vim.api.nvim_win_set_buf(sketch_win, buf)
   end
-  vim.wo[sketch_win].winbar = "%#TourLabel#Sketch · " .. title:gsub("%%", "%%%%")
+  vim.wo[sketch_win].winbar = "%#GuideLabel#Sketch · " .. title:gsub("%%", "%%%%")
   vim.wo[sketch_win].wrap = false
   vim.api.nvim_win_call(sketch_win, function()
     vim.fn.winrestview({ lnum = 1, topline = 1 })

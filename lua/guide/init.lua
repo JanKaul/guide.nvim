@@ -1,9 +1,9 @@
--- Public API of tour.nvim. Claude calls these through `bin/tour`, which goes
+-- Public API of guide.nvim. Claude calls these through `bin/nvim-guide`, which goes
 -- through `rpc`; every call returns a table that becomes one JSON line.
 -- Glossary: see GLOSSARY.md (Tour, Itinerary, Stop, Anchor, Label, Sketch, Detour).
 
-local anchor = require("tour.anchor")
-local ui = require("tour.ui")
+local anchor = require("guide.anchor")
+local ui = require("guide.ui")
 
 local M = {}
 
@@ -159,15 +159,15 @@ function M.status()
   }
 end
 
---- Jumps the cursor to the current Stop (for :TourStop).
+--- Jumps the cursor to the current Stop (for :GuideStop).
 function M.goto_current()
   if not (state.stops and state.current) then
-    vim.notify("tour: no Stop shown yet", vim.log.levels.WARN)
+    vim.notify("guide: no Stop shown yet", vim.log.levels.WARN)
     return
   end
   local r, err = anchor.resolve(state.stops[state.current])
   if not r then
-    vim.notify("tour: " .. err, vim.log.levels.WARN)
+    vim.notify("guide: " .. err, vim.log.levels.WARN)
     return
   end
   -- The developer may have wandered off (another file, closed window): bring
@@ -184,7 +184,7 @@ end
 
 local COMMANDS = { itinerary = M.itinerary, show = M.show, finish = M.finish, status = M.status }
 
---- Entry point for `bin/tour`: `{cmd, payload_file}` in, one JSON string out.
+--- Entry point for `bin/nvim-guide`: `{cmd, payload_file}` in, one JSON string out.
 function M.rpc(argv)
   local ok, result = pcall(function()
     local cmd, file = argv[1], argv[2]
@@ -212,7 +212,7 @@ function M.rpc(argv)
 end
 
 function M.setup()
-  -- Highlights are defined in plugin/tour.lua; nothing to configure yet.
+  -- Highlights are defined in plugin/guide.lua; nothing to configure yet.
 end
 
 return M
