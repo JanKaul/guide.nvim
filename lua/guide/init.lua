@@ -237,6 +237,15 @@ function M.send(text)
   return true
 end
 
+--- Ends the Tour from the editor (for :GuideEnd): finishes it here and types
+--- `stop` into the agent's terminal so the agent knows the Tour is over.
+function M.stop()
+  M.finish()
+  if term_chan(state.agent_buf) then
+    M.send("stop")
+  end
+end
+
 local COMMANDS = { itinerary = M.itinerary, show = M.show, finish = M.finish, status = M.status }
 
 --- Entry point for `bin/nvim-guide`: `{cmd, payload_file, caller_pid}` in, one

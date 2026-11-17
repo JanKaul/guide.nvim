@@ -53,4 +53,4 @@ Output is one JSON line. On `"ok":false` the `error` names the candidates: fix t
    - "next" / "back" / a number: `show` that Stop.
    - A question: answer it; show another place with a **Detour** when that helps, then re-`show` the current Stop.
    - "show me X": Detour to X, then return.
-7. **Finish** after the last Stop or when the developer says stop: call `finish`.
+7. **Finish** after the last Stop or when the developer says stop: call `finish`. A `stop` may come from `:GuideEnd`, which has already cleared the editor; `finish` again is harmless, so call it and end without further Narration.

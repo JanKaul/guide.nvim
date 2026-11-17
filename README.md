@@ -47,7 +47,7 @@ The plugin puts its `bin/` on Neovim's `PATH`, so Claude finds `nvim-guide` when
 | `:GuideNext` / `:GuideBack` | type `next` / `back` into the agent's prompt |
 | `:GuideSend {text}` | type any text into the agent's prompt and submit it (`require("guide").send(text)` from Lua) |
 | `:GuideStop` | jump to the current Stop, e.g. after exploring elsewhere (`<C-o>` goes back) |
-| `:GuideEnd` | clear highlights, close the Sketch and the diff |
+| `:GuideEnd` | clear highlights, close the Sketch and the diff, and type `stop` into the agent's prompt |
 
 The agent's terminal is found by itself: each `nvim-guide` call passes its process ID, and the plugin picks the Neovim terminal whose job started it. So the keys work with any agent running in a Neovim terminal, once it has called `nvim-guide`.
 

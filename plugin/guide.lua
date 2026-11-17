@@ -37,5 +37,5 @@ vim.api.nvim_create_user_command("GuideBack", function()
 end, { desc = "Ask the agent for the previous Stop" })
 
 vim.api.nvim_create_user_command("GuideEnd", function()
-  require("guide").finish()
-end, { desc = "End the Tour: clear highlights, close the Sketch" })
+  require("guide").stop()
+end, { desc = "End the Tour: clear highlights, close the Sketch, tell the agent" })
